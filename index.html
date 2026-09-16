@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>도형얼굴</title>
+<style>
+  :root { --ink:#2B2B2B; --paper:#FFF8EE; --accent:#1F4E79; --circle:#FF6B6B; --tri:#FFD93D; --rect:#4D96FF; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+  html, body { margin:0; height:100%; background:var(--paper); color:var(--ink);
+    font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif; word-break:keep-all; line-break:strict; overflow:hidden; user-select:none; }
+  .screen { position:fixed; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; gap:24px; }
+  .screen.on { display:flex; }
+  h1 { margin:0; font-size:56px; color:var(--accent); letter-spacing:-0.02em; }
+  .sub { margin:0; font-size:20px; color:#666; }
+  .big { width:180px; height:180px; border-radius:50%; border:none; background:var(--accent); color:#fff; font-size:22px; font-weight:700;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; box-shadow:0 8px 0 #163a5a; cursor:pointer; }
+  .big:active { transform:translateY(6px); box-shadow:0 2px 0 #163a5a; }
+  .big svg { width:72px; height:72px; }
+  .tiny { font-size:14px; color:#888; background:none; border:none; text-decoration:underline; cursor:pointer; }
+  .status { font-size:18px; color:#666; min-height:24px; }
+
+  /* 촬영 */
+  #camWrap { position:relative; width:min(90vw, 120vh); aspect-ratio:4/3; background:#000; border-radius:24px; overflow:hidden; }
+  #video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  #guide { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
+  /* 놀이 */
+  #play { justify-content:stretch; gap:0; }
+  #stage { flex:1; width:100%; display:flex; align-items:center; justify-content:center; padding:12px; min-height:0; }
+  #canvas { max-width:100%; max-height:100%; aspect-ratio:4/3; background:#fff; border-radius:24px; box-shadow:0 4px 24px rgba(0,0,0,.08); touch-action:none; }
+  #kidbar { display:flex; gap:32px; justify-content:center; padding:8px 0 20px; }
+  .kid { width:112px; height:112px; border-radius:28px; border:none; background:#fff; box-shadow:0 6px 0 #ddd; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; }
+  .kid:active { transform:translateY(4px); box-shadow:0 2px 0 #ddd; }
+  .kid svg { width:64px; height:64px; stroke:var(--accent); fill:none; stroke-width:6; stroke-linecap:round; stroke-linejoin:round; }
+  #gear { position:fixed; top:10px; right:10px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(0,0,0,.08); color:#666; font-size:22px; cursor:pointer; }
+  #hint { position:fixed; top:14px; left:16px; font-size:16px; color:#888; }
+
+  /* 교사 패널 */
+  #panel { position:fixed; top:0; right:0; bottom:0; width:300px; background:#fff; box-shadow:-4px 0 24px rgba(0,0,0,.12); padding:20px; display:none; flex-direction:column; gap:14px; overflow:auto; font-size:15px; }
+  #panel.on { display:flex; }
+  #panel h2 { font-size:16px; margin:8px 0 0; color:var(--accent); }
+  .row { display:flex; flex-wrap:wrap; gap:6px; }
+  .row button { padding:8px 12px; border:1px solid #ccc; border-radius:8px; background:#fff; font-size:14px; cursor:pointer; }
+  .row button.sel { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+  #printArea { display:none; }
+  @media print {
+    body > *:not(#printArea) { display:none !important; }
+    #printArea { display:block; }
+    #printArea img { width:100%; page-break-after:always; }
+    #printArea .sheet { font-size:18px; line-height:1.8; padding:24px; }
+    #printArea h2 { color:#000; }
+  }
+</style>
+</head>
+<body>
+
+<section id="start" class="screen on">
+  <h1>도형얼굴</h1>
+  <p class="sub">내 얼굴에서 동그라미, 세모, 네모를 찾아요</p>
+  <button class="big" id="btnStart">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    사진 찍기
+  </button>
+  <div class="status" id="status"></div>
+  <input type="file" id="file" accept="image/*" hidden>
+  <button class="tiny" id="btnFile">사진 파일로 하기 (교사용)</button>
+</section>
+
+<section id="cam" class="screen">
+  <div id="camWrap">
+    <video id="video" autoplay playsinline muted></video>
+    <svg id="guide" viewBox="0 0 400 300"><ellipse cx="200" cy="150" rx="85" ry="115" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="10 8" opacity=".8"/></svg>
+  </div>
+  <button class="big" id="btnShot">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="#fff"/></svg>
+    찰칵
+  </button>
+</section>
+
+<section id="play" class="screen">
+  <div id="hint"></div>
+  <button id="gear" title="교사용">⚙</button>
+  <div id="stage"><canvas id="canvas" width="1000" height="750"></canvas></div>
+  <div id="kidbar">
+    <button class="kid" id="btnAgain" title="다시"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg></button>
+    <button class="kid" id="btnNext" title="다음"><svg viewBox="0 0 24 24"><path d="M4 12h15"/><path d="M13 5l7 7-7 7"/></svg></button>
+  </div>
+</section>
+
+<aside id="panel">
+  <h2>차시</h2>
+  <div class="row" id="lessons"></div>
+  <h2>활동</h2>
+  <div class="row" id="modes"></div>
+  <h2>도형 수 (보상 화면)</h2>
+  <div class="row" id="levels"></div>
+  <h2>기타</h2>
+  <div class="row">
+    <button id="btnSpeak">소리 켜짐</button>
+    <button id="btnPrint">인쇄</button>
+    <button id="btnRetake">새로 찍기</button>
+  </div>
+  <p style="color:#888;font-size:13px">사진은 저장되지 않아요. 화면을 닫으면 사라져요.</p>
+</aside>
+
+<div id="printArea"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
