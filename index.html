@@ -2,111 +2,476 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <title>도형얼굴</title>
 <style>
-  :root { --ink:#2B2B2B; --paper:#FFF8EE; --accent:#1F4E79; --circle:#FF6B6B; --tri:#FFD93D; --rect:#4D96FF; }
-  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
-  html, body { margin:0; height:100%; background:var(--paper); color:var(--ink);
-    font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif; word-break:keep-all; line-break:strict; overflow:hidden; user-select:none; }
-  .screen { position:fixed; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; gap:24px; }
-  .screen.on { display:flex; }
-  h1 { margin:0; font-size:56px; color:var(--accent); letter-spacing:-0.02em; }
-  .sub { margin:0; font-size:20px; color:#666; }
-  .big { width:180px; height:180px; border-radius:50%; border:none; background:var(--accent); color:#fff; font-size:22px; font-weight:700;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; box-shadow:0 8px 0 #163a5a; cursor:pointer; }
-  .big:active { transform:translateY(6px); box-shadow:0 2px 0 #163a5a; }
-  .big svg { width:72px; height:72px; }
-  .tiny { font-size:14px; color:#888; background:none; border:none; text-decoration:underline; cursor:pointer; }
-  .status { font-size:18px; color:#666; min-height:24px; }
+  @font-face { font-family: Paperlogy; font-weight: 400; font-display: swap; src: url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2) format('woff2'); }
+  @font-face { font-family: Paperlogy; font-weight: 600; font-display: swap; src: url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2) format('woff2'); }
+  @font-face { font-family: Paperlogy; font-weight: 700; font-display: swap; src: url(https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2) format('woff2'); }
+  :root { --text: #191f28; --sub: #4e5968; --muted: #8b95a1; --surface: #f2f4f6; --blue: #3182f6; --blue-press: #1b64da; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: #fff; color: var(--text); font-family: Paperlogy, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; word-break: keep-all; line-break: strict; overflow: hidden; }
+  .screen { position: fixed; inset: 0; display: none; flex-direction: column; padding-top: env(safe-area-inset-top, 0); }
+  .screen.on { display: flex; }
+  button { font: inherit; font-weight: 700; font-size: 17px; border: 0; border-radius: 16px; padding: 17px 20px; cursor: pointer; touch-action: manipulation; transition: transform .08s, background .12s; }
+  button:active { transform: scale(.98); }
+  .primary { background: var(--blue); color: #fff; }
+  .primary:active { background: var(--blue-press); }
+  .secondary { background: var(--surface); color: var(--text); }
+  button:disabled { background: var(--surface); color: var(--muted); }
+  .bar { display: flex; gap: 10px; padding: 12px 20px calc(16px + env(safe-area-inset-bottom, 0)); background: #fff; }
+  .bar button { flex: 1; }
 
-  /* 촬영 */
-  #camWrap { position:relative; width:min(90vw, 120vh); aspect-ratio:4/3; background:#000; border-radius:24px; overflow:hidden; }
-  #video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
-  #guide { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  /* 시작 */
+  #start { padding-left: 24px; padding-right: 24px; }
+  #start .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+  #start h1 { font-size: 44px; font-weight: 700; color: var(--blue); letter-spacing: -0.02em; margin-bottom: 6px; }
+  #start h1 span { display: inline-block; width: .8em; height: .8em; vertical-align: -0.08em; margin-left: 10px; }
+  #start h2 { font-size: 26px; font-weight: 700; line-height: 1.35; }
+  #start p { font-size: 16px; line-height: 1.6; color: var(--sub); }
+  #start small { display: block; font-size: 13px; line-height: 1.5; color: var(--muted); text-align: center; margin-bottom: 4px; }
+  #start .bar { padding-left: 0; padding-right: 0; }
+  .tiny { align-self: center; font-size: 13px; font-weight: 400; color: var(--muted); background: none; padding: 6px; text-decoration: underline; }
 
-  /* 놀이 */
-  #play { justify-content:stretch; gap:0; }
-  #stage { flex:1; width:100%; display:flex; align-items:center; justify-content:center; padding:12px; min-height:0; }
-  #canvas { max-width:100%; max-height:100%; aspect-ratio:4/3; background:#fff; border-radius:24px; box-shadow:0 4px 24px rgba(0,0,0,.08); touch-action:none; }
-  #kidbar { display:flex; gap:32px; justify-content:center; padding:8px 0 20px; }
-  .kid { width:112px; height:112px; border-radius:28px; border:none; background:#fff; box-shadow:0 6px 0 #ddd; cursor:pointer;
-    display:flex; align-items:center; justify-content:center; }
-  .kid:active { transform:translateY(4px); box-shadow:0 2px 0 #ddd; }
-  .kid svg { width:64px; height:64px; stroke:var(--accent); fill:none; stroke-width:6; stroke-linecap:round; stroke-linejoin:round; }
-  #gear { position:fixed; top:10px; right:10px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(0,0,0,.08); color:#666; font-size:22px; cursor:pointer; }
-  #hint { position:fixed; top:14px; left:16px; font-size:16px; color:#888; }
+  /* 카메라·놀이 공통 무대 */
+  #cam { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .stage { position: relative; display: flex; width: min(100% - 32px, 100vh - 200px); aspect-ratio: 1; margin: auto; border-radius: 24px; overflow: hidden; background: #000; }
+  .stage canvas { flex: 1; min-height: 0; width: 100%; object-fit: cover; touch-action: none; }
+  #hint { position: absolute; top: 0; left: 0; right: 0; padding: 18px; text-align: center; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.5); font-size: 16px; font-weight: 600; pointer-events: none; }
+  #hint.big { font-size: 120px; top: 35%; }
+  #play .stage { background: #fff; border: 1px solid var(--surface); }
+  #lesson { text-align: center; font-size: 14px; color: var(--muted); padding: 8px 0 0; }
+  #gear { position: fixed; top: calc(10px + env(safe-area-inset-top, 0)); right: 12px; width: 40px; height: 40px; padding: 0; border-radius: 50%; background: var(--surface); color: var(--sub); font-size: 20px; z-index: 5; }
+  .kid svg { width: 32px; height: 32px; stroke: currentColor; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; vertical-align: -9px; }
+
+  /* 생성 중 */
+  #gen { align-items: center; justify-content: center; gap: 22px; font-size: 20px; font-weight: 700; text-align: center; padding: 24px; }
+  .spin { width: 44px; height: 44px; border: 4px solid var(--surface); border-top-color: var(--blue); border-radius: 50%; animation: spin .9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .dots::after { content: ''; animation: dots 1.2s steps(4) infinite; }
+  @keyframes dots { to { content: '...'; } }
+
+  /* 완성 */
+  .card { display: flex; width: min(100% - 32px, 100vh - 240px); aspect-ratio: 1; margin: auto; padding: 12px; border-radius: 24px; background: var(--surface); }
+  #pic { flex: 1; min-height: 0; width: 100%; object-fit: contain; border-radius: 16px; }
+  .note { padding: 12px 24px 0; text-align: center; font-size: 13px; line-height: 1.5; color: var(--muted); }
 
   /* 교사 패널 */
-  #panel { position:fixed; top:0; right:0; bottom:0; width:300px; background:#fff; box-shadow:-4px 0 24px rgba(0,0,0,.12); padding:20px; display:none; flex-direction:column; gap:14px; overflow:auto; font-size:15px; }
-  #panel.on { display:flex; }
-  #panel h2 { font-size:16px; margin:8px 0 0; color:var(--accent); }
-  .row { display:flex; flex-wrap:wrap; gap:6px; }
-  .row button { padding:8px 12px; border:1px solid #ccc; border-radius:8px; background:#fff; font-size:14px; cursor:pointer; }
-  .row button.sel { background:var(--accent); color:#fff; border-color:var(--accent); }
+  #panel { position: fixed; top: 0; right: 0; bottom: 0; width: 290px; background: #fff; box-shadow: -4px 0 24px rgba(0,0,0,.12); padding: 64px 20px 20px; display: none; flex-direction: column; gap: 12px; overflow: auto; z-index: 4; }
+  #panel.on { display: flex; }
+  #panel h3 { font-size: 14px; color: var(--muted); font-weight: 600; margin-top: 6px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .row button { padding: 9px 12px; font-size: 14px; border-radius: 10px; background: var(--surface); color: var(--text); }
+  .row button.sel { background: var(--blue); color: #fff; }
 
-  #printArea { display:none; }
+  #printArea { display: none; }
   @media print {
-    body > *:not(#printArea) { display:none !important; }
-    #printArea { display:block; }
-    #printArea img { width:100%; page-break-after:always; }
-    #printArea .sheet { font-size:18px; line-height:1.8; padding:24px; }
-    #printArea h2 { color:#000; }
+    body > *:not(#printArea) { display: none !important; }
+    #printArea { display: block; }
+    #printArea img { width: 100%; page-break-after: always; }
+    #printArea .sheet { font-size: 18px; line-height: 1.8; padding: 24px; }
   }
 </style>
 </head>
 <body>
-
 <section id="start" class="screen on">
-  <h1>도형얼굴</h1>
-  <p class="sub">내 얼굴에서 동그라미, 세모, 네모를 찾아요</p>
-  <button class="big" id="btnStart">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-    사진 찍기
-  </button>
-  <div class="status" id="status"></div>
-  <input type="file" id="file" accept="image/*" hidden>
+  <div class="body">
+    <h1>도형얼굴<span><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="6" fill="#FF6B6B"/><path d="M14 22 L23 22 L18.5 13 Z" fill="#FFD93D"/><rect x="2" y="14" width="8" height="8" fill="#4D96FF"/></svg></span></h1>
+    <h2>내 얼굴에서 찾는<br>동그라미, 세모, 네모</h2>
+    <p>카메라가 얼굴을 찾아서 눈, 코, 입을<br>도형으로 바꿔 그려요.<br>도형을 눌러 이름을 듣고, 찾고, 만들어 봐요.</p>
+  </div>
+  <small>카메라 영상은 이 기기 안에서만 처리되고<br>어디에도 전송되거나 저장되지 않아요.</small>
+  <div class="bar"><button id="go" class="primary" disabled>불러오는 중…</button></div>
   <button class="tiny" id="btnFile">사진 파일로 하기 (교사용)</button>
+  <input type="file" id="file" accept="image/*" hidden>
 </section>
 
-<section id="cam" class="screen">
-  <div id="camWrap">
-    <video id="video" autoplay playsinline muted></video>
-    <svg id="guide" viewBox="0 0 400 300"><ellipse cx="200" cy="150" rx="85" ry="115" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="10 8" opacity=".8"/></svg>
+<section id="live" class="screen">
+  <video id="cam" playsinline muted autoplay></video>
+  <div class="stage">
+    <canvas id="view"></canvas>
+    <div id="hint"></div>
   </div>
-  <button class="big" id="btnShot">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="#fff"/></svg>
-    찰칵
-  </button>
+  <div class="bar">
+    <button id="more" class="secondary">도형 더 많이</button>
+    <button id="shoot" class="primary">찰칵</button>
+  </div>
+</section>
+
+<section id="gen" class="screen">
+  <div class="spin"></div>
+  <p>얼굴을 도형으로 바꾸고 있어요<span class="dots"></span></p>
 </section>
 
 <section id="play" class="screen">
-  <div id="hint"></div>
   <button id="gear" title="교사용">⚙</button>
-  <div id="stage"><canvas id="canvas" width="1000" height="750"></canvas></div>
-  <div id="kidbar">
-    <button class="kid" id="btnAgain" title="다시"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg></button>
-    <button class="kid" id="btnNext" title="다음"><svg viewBox="0 0 24 24"><path d="M4 12h15"/><path d="M13 5l7 7-7 7"/></svg></button>
+  <div class="stage"><canvas id="canvas" width="1000" height="1000"></canvas></div>
+  <p id="lesson"></p>
+  <div class="bar">
+    <button id="again" class="secondary kid"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg> 다시</button>
+    <button id="next" class="primary kid"><svg viewBox="0 0 24 24"><path d="M4 12h15"/><path d="M13 5l7 7-7 7"/></svg> 다음</button>
+  </div>
+</section>
+
+<section id="result" class="screen">
+  <div class="card"><img id="pic" alt="완성된 도형 얼굴"></div>
+  <p class="note">얼굴 사진은 저장되지 않아요. 이 그림은 기기 안에서만 만들어졌고, 다시 하기를 누르면 바로 지워져요.</p>
+  <div class="bar">
+    <button id="restart" class="secondary">다시 하기</button>
+    <button id="save" class="primary">사진 저장</button>
   </div>
 </section>
 
 <aside id="panel">
-  <h2>차시</h2>
-  <div class="row" id="lessons"></div>
-  <h2>활동</h2>
-  <div class="row" id="modes"></div>
-  <h2>도형 수 (보상 화면)</h2>
-  <div class="row" id="levels"></div>
-  <h2>기타</h2>
-  <div class="row">
-    <button id="btnSpeak">소리 켜짐</button>
-    <button id="btnPrint">인쇄</button>
-    <button id="btnRetake">새로 찍기</button>
-  </div>
-  <p style="color:#888;font-size:13px">사진은 저장되지 않아요. 화면을 닫으면 사라져요.</p>
+  <h3>차시</h3><div class="row" id="lessons"></div>
+  <h3>활동</h3><div class="row" id="modes"></div>
+  <h3>도형 수 (보상 화면)</h3><div class="row" id="levels"></div>
+  <h3>기타</h3>
+  <div class="row"><button id="btnSpeak">소리 켜짐</button><button id="btnPrint">인쇄</button><button id="btnRetake">새로 찍기</button></div>
 </aside>
-
 <div id="printArea"></div>
-<script type="module" src="app.js"></script>
+
+<script type="module">
+import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs";
+const WASM  = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
+const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const imgSrc = params.get('img');           // ?img=사진경로 → 카메라 대신 사진으로 테스트
+const S = 1000;                             // 놀이 무대 좌표계 (정사각형)
+const cv = $('canvas'), ctx = cv.getContext('2d');
+const video = $('cam'), view = $('view'), vctx = view.getContext('2d');
+const KIND = { circle: { name: '동그라미', color: '#FF6B6B' }, tri: { name: '세모', color: '#FFD93D' }, rect: { name: '네모', color: '#4D96FF' } };
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+// ---------- 소리 ----------
+let speakOn = true, audio;
+function speak(text) {
+  if (!speakOn || !('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR'; u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+function chime(ok = true) {
+  if (!speakOn) return;
+  audio ||= new (window.AudioContext || window.webkitAudioContext)();
+  const o = audio.createOscillator(), g = audio.createGain();
+  o.connect(g); g.connect(audio.destination);
+  o.frequency.value = ok ? 880 : 220; g.gain.value = 0.15;
+  o.start(); o.frequency.exponentialRampToValueAtTime(ok ? 1320 : 160, audio.currentTime + 0.15);
+  g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.3); o.stop(audio.currentTime + 0.3);
+}
+
+// ---------- 도형 ----------
+// circle: {kind:'circle', cx, cy, rx, ry, rot}   tri/rect: {kind, pts:[[x,y],...]}   tier 1:3개 2:7개 3:20개
+let id = 0;
+const circle = (cx, cy, rx, ry = rx, rot = 0, tier = 1) => ({ id: id++, kind: 'circle', cx, cy, rx, ry, rot, tier });
+const poly = (kind, pts, tier = 1) => ({ id: id++, kind, pts, tier });
+const rectPts = (x, y, w, h, rot = 0) => {
+  const cx = x + w / 2, cy = y + h / 2, c = Math.cos(rot), s = Math.sin(rot);
+  return [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]].map(([px, py]) => [cx + px * c - py * s, cy + px * s + py * c]);
+};
+
+// 얼굴 특징점 → 도형 20개. fit=true면 얼굴을 무대 높이 70%로 확대해 가운데 놓음(놀이 화면용).
+function facesToShapes(lm, W, H, fit) {
+  const raw = i => ({ x: lm[i].x * W, y: lm[i].y * H });
+  let k = 1, c0 = { x: 0, y: 0 }, o = { x: 0, y: 0 };
+  if (fit) { k = Math.min(3, Math.max(1, H * 0.7 / dist(raw(10), raw(152)))); c0 = { x: (raw(234).x + raw(454).x) / 2, y: (raw(10).y + raw(152).y) / 2 }; o = { x: W / 2, y: H / 2 }; }
+  const P = i => { const p = raw(i); return { x: o.x + (p.x - c0.x) * k, y: o.y + (p.y - c0.y) * k }; };
+  const top = P(10), chin = P(152), L = P(234), R = P(454);
+  const oval = { cx: (L.x + R.x) / 2, cy: (top.y + chin.y) / 2, rx: dist(L, R) / 2, ry: dist(top, chin) / 2, rot: Math.atan2(chin.y - top.y, chin.x - top.x) - Math.PI / 2 };
+  const eye = (a, b, c, d) => { const p = [P(a), P(b), P(c), P(d)]; return { cx: p.reduce((s, q) => s + q.x, 0) / 4, cy: p.reduce((s, q) => s + q.y, 0) / 4, r: dist(p[0], p[1]) / 2 * 0.8 }; };
+  const le = eye(33, 133, 159, 145), re = eye(362, 263, 386, 374), er = (le.r + re.r) / 2;
+  const brow = (a, b, t) => { const x0 = Math.min(P(a).x, P(b).x), x1 = Math.max(P(a).x, P(b).x); return rectPts(x0, P(t).y - er * 0.3, x1 - x0, er * 0.6); };
+  const nb = P(6), n2 = P(2), nl = P(98), nr = P(327), m0 = P(0), m17 = P(17), ml = P(61), mr = P(291);
+  const s = [];   // 뒤에서 앞 순서
+  s.push(circle(L.x - er * 0.9, L.y, er * 0.55, er * 1.2, 0, 3), circle(R.x + er * 0.9, R.y, er * 0.55, er * 1.2, 0, 3));   // 귀
+  s.push(poly('rect', rectPts(L.x, top.y - oval.ry * 0.35, R.x - L.x, oval.ry * 0.5), 3));                                   // 머리
+  const face = circle(oval.cx, oval.cy, oval.rx, oval.ry, oval.rot, 1); s.push(face);                                          // 얼굴
+  s.push(poly('rect', rectPts(P(70).x, top.y + oval.ry * 0.12, P(300).x - P(70).x, Math.max(20, P(105).y - er * 0.8 - top.y - oval.ry * 0.12)), 3)); // 이마
+  s.push(circle(P(50).x, P(50).y, er * 0.8, er * 0.8, 0, 3), circle(P(280).x, P(280).y, er * 0.8, er * 0.8, 0, 3));         // 볼
+  s.push(poly('tri', [[P(172).x, P(172).y], [P(397).x, P(397).y], [chin.x, chin.y]], 3));                                    // 턱
+  s.push(poly('rect', brow(70, 107, 105), 2), poly('rect', brow(300, 336, 334), 2));                                          // 눈썹
+  s.push(circle(le.cx, le.cy, le.r, le.r, 0, 1), circle(re.cx, re.cy, re.r, re.r, 0, 1));                                    // 눈
+  if (lm.length > 473) s.push(circle(P(468).x, P(468).y, er * 0.4, er * 0.4, 0, 3), circle(P(473).x, P(473).y, er * 0.4, er * 0.4, 0, 3)); // 눈동자
+  s.push(poly('tri', [[nb.x, nb.y], [nr.x + er * 0.2, n2.y], [nl.x - er * 0.2, n2.y]], 2));                                  // 코
+  s.push(circle(nl.x, n2.y - er * 0.1, er * 0.3, er * 0.3, 0, 3), circle(nr.x, n2.y - er * 0.1, er * 0.3, er * 0.3, 0, 3)); // 콧구멍
+  s.push(poly('rect', rectPts(ml.x, m0.y, mr.x - ml.x, Math.max(er * 0.6, m17.y - m0.y)), 2));                              // 입
+  const tw = (mr.x - ml.x) * 0.18, th = Math.max(er * 0.25, (m17.y - m0.y) * 0.35), mc = ml.x + (mr.x - ml.x) / 2;
+  s.push(poly('rect', rectPts(mc - tw - 2, m0.y + 4, tw, th), 3), poly('rect', rectPts(mc + 2, m0.y + 4, tw, th), 3));      // 이
+  s.face = face;
+  return s;
+}
+
+// 구별하기용 도형 8개: 목표 종류 4개(방향·비율 다르게) + 다른 종류 4개
+function sortShapes(target) {
+  const cells = [];
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) cells.push([125 + c * 250, 300 + r * 400]);
+  cells.sort(() => Math.random() - 0.5);
+  const mk = (kind, v, [x, y]) => {
+    const R = 80;
+    if (kind === 'circle') return [circle(x, y, R, R), circle(x, y, R * 1.3, R * 0.7), circle(x, y, R * 0.6, R * 1.2), circle(x, y, R * 0.5, R * 0.5)][v];
+    if (kind === 'rect') return poly('rect', [rectPts(x - R, y - R, R * 2, R * 2), rectPts(x - R * 1.4, y - R * 0.5, R * 2.8, R), rectPts(x - R * 0.5, y - R * 1.2, R, R * 2.4), rectPts(x - R, y - R * 0.7, R * 2, R * 1.4, 0.5)][v]);
+    const tris = [[[0, -1], [1, 0.8], [-1, 0.8]], [[0, 1], [1, -0.8], [-1, -0.8]], [[-1, -0.9], [1, 0.3], [-0.6, 1]], [[0, -1.3], [0.45, 1], [-0.45, 1]]];
+    return poly('tri', tris[v].map(([px, py]) => [x + px * R, y + py * R]));
+  };
+  const others = Object.keys(KIND).filter(k => k !== target);
+  return [0, 1, 2, 3].map(v => mk(target, v, cells[v])).concat([0, 1, 2, 3].map(v => mk(others[v % 2], v, cells[v + 4])));
+}
+
+// ---------- 그리기 ----------
+function pathOf(c, s) {
+  c.beginPath();
+  if (s.kind === 'circle') c.ellipse(s.cx, s.cy, s.rx, s.ry, s.rot, 0, Math.PI * 2);
+  else { s.pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); }
+}
+function drawShape(c, s, { alpha = 1, stroke = '#111', lw = 4 } = {}) {
+  pathOf(c, s);
+  c.globalAlpha = alpha; c.fillStyle = KIND[s.kind].color; c.fill(); c.globalAlpha = 1;
+  c.lineWidth = lw; c.strokeStyle = stroke; c.lineJoin = c.lineCap = 'round'; c.stroke();
+}
+
+// ---------- 카메라 화면 (실시간) ----------
+let landmarker, source, W, H, lm = null, running = false, liveLevel = 2, first = true;
+const TIERS = [1, 2, 3];
+function renderLive() {
+  const cw = view.width, ch = view.height;
+  vctx.setTransform(1, 0, 0, 1, 0, 0);
+  vctx.translate(cw, 0); vctx.scale(-1, 1);            // 거울처럼 좌우 반전
+  vctx.drawImage(source, 0, 0, cw, ch);
+  vctx.fillStyle = 'rgba(0,0,0,.45)'; vctx.fillRect(0, 0, cw, ch);
+  if (lm) for (const s of facesToShapes(lm, cw, ch, false)) if (s.tier <= liveLevel) drawShape(vctx, s, { alpha: .75, stroke: '#fff', lw: Math.min(cw, ch) * 0.006 });
+  vctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+function frame() {
+  if (!running) return;
+  if (!imgSrc && video.videoWidth && (video.videoWidth !== W || video.videoHeight !== H)) { W = view.width = video.videoWidth; H = view.height = video.videoHeight; }
+  if (first) { first = false; renderLive(); return requestAnimationFrame(frame); }
+  const res = imgSrc ? landmarker.detect(source) : landmarker.detectForVideo(source, performance.now());
+  lm = res.faceLandmarks[0] || null;
+  renderLive();
+  if (!$('hint').classList.contains('big')) $('hint').textContent = lm ? '내 얼굴이 도형이 됐어요. 찰칵을 눌러요' : '얼굴을 화면에 맞춰주세요';
+  requestAnimationFrame(frame);
+}
+$('more').onclick = () => { liveLevel = TIERS[(TIERS.indexOf(liveLevel) + 1) % 3]; };
+
+// ---------- 놀이 화면 ----------
+const st = { face: [], shapes: [], mode: 'name', target: 'circle', level: 3, found: new Set(), example: null, anim: null, drag: null, lesson: 1, step: 0 };
+const visible = () => st.mode === 'sort' || st.mode === 'build' ? st.shapes : st.shapes.filter(s => s.tier <= (st.mode === 'reward' ? st.level : 2));
+const PAL = [{ kind: 'circle', y: 200, s: circle(75, 200, 45) }, { kind: 'tri', y: 500, s: poly('tri', [[75, 450], [125, 540], [25, 540]]) }, { kind: 'rect', y: 800, s: poly('rect', rectPts(30, 755, 90, 90)) }];
+
+function draw(t) {
+  ctx.clearRect(0, 0, S, S);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, S, S);
+  if (st.mode === 'build') {
+    if (st.face.face) { ctx.save(); ctx.setLineDash([14, 10]); ctx.strokeStyle = '#bbb'; ctx.lineWidth = 3; pathOf(ctx, st.face.face); ctx.stroke(); ctx.restore(); }
+    ctx.fillStyle = '#f2f4f6'; ctx.fillRect(0, 0, 150, S);
+    for (const p of PAL) drawShape(ctx, p.s);
+  }
+  for (const s of visible()) {
+    const pulse = st.example === s.id ? 0.5 + 0.5 * Math.sin(t / 180) : 0, found = st.found.has(s.id), quiz = st.mode === 'find' || st.mode === 'sort';
+    ctx.save();
+    if (s.shake) { ctx.translate(Math.sin(t / 20) * 8, 0); if (t > s.shake) delete s.shake; }
+    drawShape(ctx, s, { alpha: found || !quiz ? 1 : 0.35 + pulse * 0.6, lw: found ? 8 : 4 });
+    if (st.example === s.id) { ctx.lineWidth = 6 + pulse * 6; ctx.strokeStyle = '#3182f6'; ctx.stroke(); }
+    ctx.restore();
+  }
+  if (st.anim) st.anim(t);
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+function hit(s, x, y) {
+  if (s.kind === 'circle') { const c = Math.cos(-s.rot), n = Math.sin(-s.rot), dx = x - s.cx, dy = y - s.cy, px = dx * c - dy * n, py = dx * n + dy * c; return (px / s.rx) ** 2 + (py / s.ry) ** 2 <= 1; }
+  let inside = false; const p = s.pts;
+  for (let i = 0, j = p.length - 1; i < p.length; j = i++) if ((p[i][1] > y) !== (p[j][1] > y) && x < (p[j][0] - p[i][0]) * (y - p[i][1]) / (p[j][1] - p[i][1]) + p[i][0]) inside = !inside;
+  return inside;
+}
+const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * S / r.width, (e.clientY - r.top) * S / r.height]; };
+cv.addEventListener('pointerdown', e => {
+  const [x, y] = pos(e);
+  if (st.mode === 'build') {
+    if (x < 150) { addBuilt(PAL.reduce((a, b) => Math.abs(b.y - y) < Math.abs(a.y - y) ? b : a).kind); return; }
+    const s = [...st.shapes].reverse().find(s => hit(s, x, y));
+    if (s) { st.drag = { s, x, y }; try { cv.setPointerCapture(e.pointerId); } catch {} }
+    return;
+  }
+  const s = [...visible()].reverse().find(s => hit(s, x, y));
+  if (s) tap(s);
+});
+cv.addEventListener('pointermove', e => {
+  if (!st.drag) return;
+  const [x, y] = pos(e), d = st.drag, dx = x - d.x, dy = y - d.y; d.x = x; d.y = y;
+  if (d.s.kind === 'circle') { d.s.cx += dx; d.s.cy += dy; } else d.s.pts = d.s.pts.map(([px, py]) => [px + dx, py + dy]);
+});
+cv.addEventListener('pointerup', () => { st.drag = null; });
+function addBuilt(kind) {
+  const x = 550 + (Math.random() - 0.5) * 200, y = 500 + (Math.random() - 0.5) * 200, R = 60;
+  st.shapes.push(kind === 'circle' ? circle(x, y, R) : kind === 'tri' ? poly('tri', [[x, y - R], [x + R, y + R * 0.8], [x - R, y + R * 0.8]]) : poly('rect', rectPts(x - R, y - R, R * 2, R * 2)));
+  speak(KIND[kind].name);
+}
+
+function tap(s) {
+  const name = KIND[s.kind].name;
+  if (st.mode === 'find' || st.mode === 'sort') {
+    if (s.kind === st.target) {
+      if (st.found.has(s.id)) return;
+      st.found.add(s.id); chime(true);
+      const total = visible().filter(v => v.kind === st.target).length;
+      if (st.found.size >= total) { speak(`다 찾았어! ${name}가 ${total}개 있었어.`); celebrate(); }
+      else speak(`맞아, ${name}!`);
+    } else { chime(false); s.shake = performance.now() + 400; speak(`그건 ${name}야. ${KIND[st.target].name}를 찾아 봐.`); }
+  } else if (st.mode === 'name') {
+    chime(true); speak(name); st.example = s.id;
+    setTimeout(() => speak('따라 말해 봐'), 1500);
+  } else if (st.mode === 'props') props(s);
+  else if (st.mode === 'reward') speak(name);
+}
+function props(s) {   // 꼭짓점 하나씩 깜빡이며 세기
+  if (s.kind === 'circle') { speak('뾰족한 곳이 없어. 동글동글 동그라미!'); st.example = s.id; return; }
+  const n = s.pts.length, words = ['하나', '둘', '셋', '넷'];
+  let i = 0; st.example = s.id;
+  st.anim = t => { for (let k = 0; k <= Math.min(i, n - 1); k++) { const [x, y] = s.pts[k]; ctx.beginPath(); ctx.arc(x, y, k === i ? 14 + 6 * Math.sin(t / 80) : 12, 0, Math.PI * 2); ctx.fillStyle = '#3182f6'; ctx.fill(); } };
+  const step = () => { if (i < n) { speak(words[i]); i++; setTimeout(step, 1100); } else { speak(`뾰족한 곳이 ${n}개. ${KIND[s.kind].name}!`); setTimeout(() => { st.anim = null; }, 2500); } };
+  step();
+}
+function celebrate() {
+  const end = performance.now() + 1800, dots = Array.from({ length: 40 }, () => ({ x: Math.random() * S, y: -20 - Math.random() * 300, v: 2 + Math.random() * 3, c: Object.values(KIND)[Math.floor(Math.random() * 3)].color }));
+  st.anim = t => { for (const d of dots) { d.y += d.v * 2; ctx.fillStyle = d.c; ctx.fillRect(d.x, d.y, 12, 12); } if (t > end) st.anim = null; };
+}
+
+// ---------- 차시와 활동 ----------
+const LESSONS = {
+  1: [['name', 'circle', '눈은 동그라미야. 도형을 눌러 봐.'], ['find', 'circle', '동그라미를 모두 찾아 봐.']],
+  2: [['name', 'tri', '코는 세모야. 도형을 눌러 봐.'], ['sort', 'tri', '이 중에서 세모만 골라 봐.'], ['find', 'tri', '내 얼굴에서 세모를 찾아 봐.']],
+  3: [['name', 'rect', '입은 네모야. 도형을 눌러 봐.'], ['find', 'rect', '네모를 모두 찾아 봐.'], ['find', 'circle', '이번엔 동그라미를 찾아 봐.'], ['find', 'tri', '이번엔 세모를 찾아 봐.']],
+  4: [['props', 'tri', '도형을 누르면 뾰족한 곳을 같이 세어 보자.']],
+  5: [['build', 'circle', '도형을 끌어다 내 얼굴을 만들어 봐.'], ['reward', 'circle', '도형이 몇 개일까? 다음을 누르면 더 많아져.']],
+};
+const MODES = { name: '이름 듣기', find: '찾기', sort: '구별하기', props: '속성 보기', build: '만들기', reward: '보상 화면' };
+function setMode(mode, target = st.target, prompt = '') {
+  st.mode = mode; st.target = target; st.found.clear(); st.example = null; st.anim = null;
+  st.shapes = mode === 'sort' ? sortShapes(target) : mode === 'build' ? [] : st.face;
+  if (mode === 'find') st.example = visible().find(s => s.kind === target)?.id ?? null;
+  $('lesson').textContent = `${st.lesson}차시 · ${MODES[mode]}`;
+  if (prompt) speak(prompt);
+  syncPanel();
+}
+function setLesson(n, step = 0) { st.lesson = n; st.step = step; setMode(...LESSONS[n][step]); }
+$('next').onclick = () => {
+  if (st.mode === 'reward') { finish(); return; }
+  const steps = LESSONS[st.lesson];
+  if (st.step + 1 < steps.length) setLesson(st.lesson, st.step + 1);
+  else if (st.lesson < 5) { speak('오늘 활동 끝! 잘했어.'); setMode('reward', st.target); }
+  else setMode('reward', st.target, '도형이 몇 개일까? 다음을 누르면 더 많아져.');
+};
+$('again').onclick = () => { if (st.mode === 'build') st.shapes.pop(); else setLesson(st.lesson, st.step); };
+
+// 보상 화면에서 다음: 3 → 7 → 20 → 완성 카드
+function finish() {
+  if (st.level !== 20) { st.level = st.level === 3 ? 7 : 20; speak(`도형 ${visible().length}개`); syncPanel(); return; }
+  const rc = document.createElement('canvas'); rc.width = rc.height = 1400; const c = rc.getContext('2d');
+  c.fillStyle = '#fff'; c.fillRect(0, 0, 1400, 1400); c.scale(1.4, 1.4);
+  for (const s of st.face) drawShape(c, s);
+  c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#3182f6'; c.font = '700 56px Paperlogy, sans-serif'; c.textAlign = 'right'; c.fillText('도형얼굴', 1330, 1340);   // 우측 하단
+  $('pic').src = rc.toDataURL('image/png');
+  show('result');
+}
+
+// ---------- 교사 패널 ----------
+$('gear').onclick = () => $('panel').classList.toggle('on');
+document.addEventListener('pointerdown', e => { if (!$('panel').contains(e.target) && e.target !== $('gear')) $('panel').classList.remove('on'); });
+for (const n of [1, 2, 3, 4, 5]) { const b = document.createElement('button'); b.textContent = `${n}차시`; b.dataset.lesson = n; b.onclick = () => setLesson(n); $('lessons').append(b); }
+for (const [m, label] of Object.entries(MODES)) { const b = document.createElement('button'); b.textContent = label; b.dataset.mode = m; b.onclick = () => setMode(m); $('modes').append(b); }
+for (const l of [3, 7, 20]) { const b = document.createElement('button'); b.textContent = `${l}개`; b.dataset.level = l; b.onclick = () => { st.level = l; if (st.mode !== 'reward') setMode('reward'); syncPanel(); }; $('levels').append(b); }
+function syncPanel() {
+  for (const b of $('panel').querySelectorAll('button[data-lesson]')) b.classList.toggle('sel', +b.dataset.lesson === st.lesson);
+  for (const b of $('panel').querySelectorAll('button[data-mode]')) b.classList.toggle('sel', b.dataset.mode === st.mode);
+  for (const b of $('panel').querySelectorAll('button[data-level]')) b.classList.toggle('sel', +b.dataset.level === st.level);
+}
+$('btnSpeak').onclick = () => { speakOn = !speakOn; $('btnSpeak').textContent = speakOn ? '소리 켜짐' : '소리 꺼짐'; if (!speakOn) speechSynthesis.cancel(); };
+$('btnRetake').onclick = () => { $('panel').classList.remove('on'); goLive(); };
+$('btnPrint').onclick = () => {
+  $('printArea').innerHTML = `<img src="${cv.toDataURL('image/png')}">
+    <div class="sheet"><h2>도형얼굴 활동지</h2>
+    <p>오늘 내 얼굴에서 찾은 도형: 동그라미 ○ &nbsp; 세모 △ &nbsp; 네모 □</p>
+    <p>집에서 해 보기</p>
+    <p>1. 집에서 동그라미를 3개 찾아 보세요. (예: 시계, 접시, 단추)</p>
+    <p>2. 세모는 어디에 있을까요? 함께 찾아 보세요.</p>
+    <p>3. 네모를 손가락으로 따라 그려 보세요. 뾰족한 곳은 몇 개인가요?</p>
+    <p style="color:#666;font-size:14px">보호자께: 아이가 이름을 말하면 "맞아, 동그라미!"처럼 이름을 한 번 더 들려 주세요.</p></div>`;
+  window.print();
+};
+
+// ---------- 흐름 ----------
+function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); }
+function wipe() { $('pic').src = ''; lm = null; st.face = []; st.shapes = []; }   // 완성본과 얼굴 좌표 즉시 삭제
+addEventListener('pagehide', wipe);
+
+async function shoot() {
+  if (!lm) return alert('얼굴을 찾지 못했어요. 화면에 얼굴을 맞춰주세요.');
+  const h = $('hint'); h.classList.add('big');
+  for (let n = 3; n > 0; n--) { h.textContent = n; speak(String(n)); await new Promise(r => setTimeout(r, 1000)); }
+  h.classList.remove('big');
+  if (!lm) return alert('얼굴을 찾지 못했어요. 다시 해주세요.');
+  running = false;
+  startPlay(lm.map(p => ({ x: 1 - p.x, y: p.y })));   // 거울에서 본 그대로
+}
+async function startPlay(points) {
+  id = 0; st.face = facesToShapes(points, S, S, true); st.level = 3;
+  show('gen'); await new Promise(r => setTimeout(r, 1500));
+  show('play'); setLesson(1);
+}
+function goLive() { wipe(); show('live'); running = true; first = true; frame(); }
+$('shoot').onclick = shoot;
+$('restart').onclick = goLive;
+$('save').onclick = () => { const a = document.createElement('a'); a.href = $('pic').src; a.download = `shapeface-${Date.now()}.png`; a.click(); };
+
+async function openSource() {
+  if (imgSrc) {
+    const im = new Image(); im.src = imgSrc; await im.decode();
+    const k = Math.min(1, 1200 / im.naturalWidth);
+    source = document.createElement('canvas');
+    source.width = W = Math.round(im.naturalWidth * k); source.height = H = Math.round(im.naturalHeight * k);
+    source.getContext('2d').drawImage(im, 0, 0, W, H);
+  } else {
+    video.srcObject = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 960 }, height: { ideal: 960 } }, audio: false });
+    await new Promise(r => video.onloadedmetadata = r);
+    await video.play();
+    while (!video.videoWidth) await new Promise(r => setTimeout(r, 50));   // iOS에서 크기가 늦게 잡히는 경우 대기
+    source = video; W = video.videoWidth; H = video.videoHeight;
+  }
+  view.width = W; view.height = H;
+}
+$('go').onclick = async () => {
+  $('go').disabled = true; $('go').textContent = '카메라 여는 중…';
+  try { await openSource(); }
+  catch (e) { $('go').disabled = false; $('go').textContent = '시작하기'; return alert('카메라를 열 수 없어요. 브라우저의 카메라 권한을 허용해주세요.\n' + e.message); }
+  goLive();
+};
+// 교사용: 사진 파일 한 장으로 바로 놀이 화면
+$('btnFile').onclick = () => $('file').click();
+$('file').onchange = async () => {
+  const f = $('file').files[0]; if (!f) return;
+  const im = new Image(); im.src = URL.createObjectURL(f); await im.decode();
+  const off = document.createElement('canvas'); off.width = im.naturalWidth; off.height = im.naturalHeight; off.getContext('2d').drawImage(im, 0, 0);
+  URL.revokeObjectURL(im.src); $('file').value = '';
+  const l = await modelReady, res = imgSrc ? l.detect(off) : l.detectForVideo(off, performance.now());
+  if (!res.faceLandmarks[0]) return alert('얼굴을 찾지 못했어요. 다른 사진으로 해 주세요.');
+  startPlay(res.faceLandmarks[0]);
+};
+
+const modelReady = (async () => {
+  const fs = await FilesetResolver.forVisionTasks(WASM);
+  const opts = { baseOptions: { modelAssetPath: MODEL, delegate: 'GPU' }, runningMode: imgSrc ? 'IMAGE' : 'VIDEO', numFaces: 1 };
+  try { landmarker = await FaceLandmarker.createFromOptions(fs, opts); }
+  catch { opts.baseOptions.delegate = 'CPU'; landmarker = await FaceLandmarker.createFromOptions(fs, opts); }
+  if (!imgSrc) { const warm = document.createElement('canvas'); warm.width = warm.height = 64; landmarker.detectForVideo(warm, performance.now()); }   // 예열
+  $('go').disabled = false; $('go').textContent = '시작하기';
+  return landmarker;
+})();
+modelReady.catch(e => { $('go').textContent = '불러오기 실패: ' + e.message; });
+</script>
 </body>
 </html>
